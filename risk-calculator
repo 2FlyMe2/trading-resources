@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stop Loss Risk Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4ade80;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .calculator {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12%;
+            margin-top: 12%;
+            border: 1px solid #2a2a2a;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 0;
+        }
+        
+        .input-group {
+            margin-bottom: 6px;
+            flex: 1;
+        }
+        
+        .shares-wrapper {
+            width: 120px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #a0a0a0;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #4ade80;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn:active {
+            background: #3bc970;
+        }
+        
+        .results {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 0;
+            border: none;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+        
+        .result-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .risk-low { color: #4ade80; }
+        .risk-medium { color: #fbbf24; }
+        .risk-high { color: #ef4444; }
+        
+        .divider {
+            height: 1px;
+            background: #2a2a2a;
+            margin: 30px 0;
+        }
+        
+        h2 {
+            color: #4ade80;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .note {
+            background: #1a1a1a;
+            border-left: 3px solid #4ade80;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #888;
+            border-radius: 4px;
+        }
+        
+        .risk-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            margin-top: 20px;
+        }
+        
+        .risk-grid th {
+            padding: 10px 8px;
+            text-align: center;
+            color: #a0a0a0;
+            font-size: 17px;
+            font-weight: 700;
+            border-bottom: 2px solid #2a2a2a;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .risk-grid th.clickable-risk,
+        .risk-grid td:not(.row-label) {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        }
+        
+        .risk-grid th.clickable-risk:hover,
+        .risk-grid td:not(.row-label):hover {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.12);
+        }
+        
+        .risk-grid.negative th.clickable-risk:hover,
+        .risk-grid.negative td:not(.row-label):hover {
+            color: #fb923c;
+            background: rgba(251, 146, 60, 0.12);
+        }
+
+        .risk-grid th.clickable-risk.active {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.24);
+            border-bottom-color: #4ade80;
+        }
+
+        .risk-grid td.active {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.24) !important;
+            font-weight: 700;
+        }
+
+        .risk-grid th.clickable-risk.in-range {
+            color: #a7f3d0;
+            background: rgba(74, 222, 128, 0.08);
+            border-bottom-color: rgba(74, 222, 128, 0.35);
+        }
+
+        .risk-grid td.in-range {
+            background: rgba(74, 222, 128, 0.08) !important;
+        }
+
+        .risk-grid.negative th.clickable-risk.active {
+            color: #fb923c;
+            background: rgba(251, 146, 60, 0.24);
+            border-bottom-color: #fb923c;
+        }
+
+        .risk-grid.negative td.active {
+            color: #fb923c;
+            background: rgba(251, 146, 60, 0.24) !important;
+            font-weight: 700;
+        }
+
+        .risk-grid.negative th.clickable-risk.in-range {
+            color: #fdba74;
+            background: rgba(251, 146, 60, 0.08);
+            border-bottom-color: rgba(251, 146, 60, 0.35);
+        }
+
+        .risk-grid.negative td.in-range {
+            background: rgba(251, 146, 60, 0.08) !important;
+        }
+        
+        .risk-grid th:first-child {
+            text-align: left;
+            padding-left: 12px;
+        }
+        
+        .risk-grid td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 15px;
+        }
+        
+        .risk-grid .bold-row td {
+            font-weight: 700;
+        }
+        
+        .risk-grid tbody tr td:nth-child(2) {
+            background: rgba(74, 222, 128, 0.05);
+        }
+        
+        .risk-grid tbody tr td:nth-child(3) {
+            background: rgba(74, 222, 128, 0.08);
+        }
+        
+        .risk-grid tbody tr td:nth-child(4) {
+            background: rgba(74, 222, 128, 0.11);
+        }
+        
+        .risk-grid tbody tr td:nth-child(5) {
+            background: rgba(74, 222, 128, 0.14);
+        }
+        
+        .risk-grid tbody tr td:nth-child(6) {
+            background: rgba(74, 222, 128, 0.17);
+        }
+        
+        .risk-grid tbody tr td:nth-child(7) {
+            background: rgba(74, 222, 128, 0.20);
+        }
+        
+        /* Orange/red gradient for negative risk */
+        .risk-grid tbody.negative tr td:nth-child(2) {
+            background: rgba(251, 146, 60, 0.05);
+        }
+        
+        .risk-grid tbody.negative tr td:nth-child(3) {
+            background: rgba(251, 146, 60, 0.08);
+        }
+        
+        .risk-grid tbody.negative tr td:nth-child(4) {
+            background: rgba(251, 146, 60, 0.11);
+        }
+        
+        .risk-grid tbody.negative tr td:nth-child(5) {
+            background: rgba(251, 146, 60, 0.14);
+        }
+        
+        .risk-grid tbody.negative tr td:nth-child(6) {
+            background: rgba(251, 146, 60, 0.17);
+        }
+        
+        .risk-grid tbody.negative tr td:nth-child(7) {
+            background: rgba(251, 146, 60, 0.20);
+        }
+        
+        .risk-grid tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .row-label {
+            text-align: left !important;
+            color: #a0a0a0;
+            font-weight: 500;
+            padding-left: 12px !important;
+        }
+        
+        .risk-col.highlight {
+            background: rgba(74, 222, 128, 0.1);
+        }
+        
+        .risk-col.highlight .risk-pct,
+        .risk-col.highlight span {
+            color: #4ade80;
+            font-weight: 600;
+        }
+        
+        .static-value    {
+            text-align: left;
+            padding: 6px 12px;
+            color: #888;
+            font-size: 15px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+            background: rgba(100, 100, 100, 0.1);
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            align-items: flex-start;
+        }
+        
+        .value-pair {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .value-pair.stop-pair {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0;
+            padding: 3px 6px;
+            margin: -3px -6px;
+        }
+        
+        .value-pair label {
+            font-size: 15px;
+            margin-bottom: 0px;
+            color: #a0a0a0;
+            font-weight: 600;
+        }
+        
+        .static-value span {
+            color: #e0e0e0;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .tiered-summary-row {
+            text-align: left;
+            padding: 6px 12px;
+            color: #888;
+            font-size: 15px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            background: rgba(100, 100, 100, 0.08);
+            border: 1px solid #242424;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .tiered-summary-row span {
+            color: #e0e0e0;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .tiered-summary-row span.tiered-sublabel {
+            color: #a0a0a0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .tiered-summary-row .tiered-label-pair {
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .tiered-summary-row .tiered-total-pair label,
+        .tiered-summary-row .tiered-total-pair span {
+            color: #4ade80;
+            font-weight: 700;
+        }
+        
+        /* Neutral gray for empty state */
+        .static-value.empty {
+            background: rgba(100, 100, 100, 0.1);
+        }
+        
+        /* Risk level backgrounds - matching table columns */
+        .static-value.risk-0-05 {
+            background: rgba(74, 222, 128, 0.05);
+        }
+        
+        .static-value.risk-0-10 {
+            background: rgba(74, 222, 128, 0.08);
+        }
+        
+        .static-value.risk-0-25 {
+            background: rgba(74, 222, 128, 0.11);
+        }
+        
+        .static-value.risk-0-50 {
+            background: rgba(74, 222, 128, 0.14);
+        }
+        
+        .static-value.risk-0-75 {
+            background: rgba(74, 222, 128, 0.17);
+        }
+        
+        .static-value.risk-1-00 {
+            background: rgba(74, 222, 128, 0.20);
+        }
+        
+        /* Orange/red for negative risk */
+        .static-value.risk-negative-0-05 {
+            background: rgba(251, 146, 60, 0.05);
+        }
+        
+        .static-value.risk-negative-0-10 {
+            background: rgba(251, 146, 60, 0.08);
+        }
+        
+        .static-value.risk-negative-0-25 {
+            background: rgba(251, 146, 60, 0.11);
+        }
+        
+        .static-value.risk-negative-0-50 {
+            background: rgba(251, 146, 60, 0.14);
+        }
+        
+        .static-value.risk-negative-0-75 {
+            background: rgba(251, 146, 60, 0.17);
+        }
+        
+        .static-value.risk-negative-1-00 {
+            background: rgba(251, 146, 60, 0.20);
+        }
+        
+        /* Mobile responsive - show only 3 columns */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .subtitle {
+                font-size: 12px;
+            }
+            
+            label {
+                font-size: 13px;
+            }
+            
+            input {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .static-value {
+                font-size: 13px;
+            }
+            
+            .static-value span {
+                font-size: 13px;
+            }
+            
+            .risk-grid th {
+                font-size: 14px;
+                padding: 8px 6px;
+            }
+            
+            .risk-grid td {
+                font-size: 13px;
+                padding: 10px 6px;
+            }
+            
+            .input-row {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .input-group {
+                margin-bottom: 0;
+            }
+            
+            .risk-grid th:nth-child(2),
+            .risk-grid td:nth-child(2),
+            .risk-grid th:nth-child(6),
+            .risk-grid td:nth-child(6),
+            .risk-grid th:nth-child(7),
+            .risk-grid td:nth-child(7) {
+                display: none;
+            }
+            
+            .slider-group {
+                display: block !important;
+            }
+        }
+        
+        .slider-group {
+            display: none;
+            margin-top: 12px;
+            padding: 8px 0;
+        }
+        
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4ade80;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .slider-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4ade80;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .slider-group input[type="range"]::-moz-range-track {
+            background: #333;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .input-row .input-group {
+                min-width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="calculator">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="currentPrice">Entry Price</label>
+                    <input type="number" id="currentPrice" placeholder="100" value="100" step="0.01">
+                    <div class="slider-group">
+                        <input type="range" id="currentPriceSlider" min="0.1" max="1000" step="0.01" value="100">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="stopPrice">Stop Price</label>
+                    <input type="number" id="stopPrice" placeholder="90" value="90" step="0.01">
+                    <div class="slider-group">
+                        <input type="range" id="stopPriceSlider" min="0.1" max="1000" step="0.01" value="90">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="accountSize">Account Size</label>
+                    <input type="number" id="accountSize" placeholder="50000" value="50000" step="1000">
+                    <div class="slider-group">
+                        <input type="range" id="accountSizeSlider" min="0" max="1000000" step="1000" value="50000">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-row">
+                <div class="shares-wrapper">
+                    <div class="input-group">
+                        <label for="shares">Shares</label>
+                        <input type="number" id="shares" placeholder="100" value="" step="1">
+                        <div class="slider-group">
+                            <input type="range" id="sharesSlider" min="0" max="10000" step="1" value="">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="static-value">
+                    <div class="value-pair stop-pair">
+                        <label>Stop</label>
+                        <span id="stopPercent">-</span>
+                    </div>
+                    <div class="value-pair">
+                        <label>Risk %</label>
+                        <span id="riskPercent">-</span>
+                    </div>
+                    <div class="value-pair">
+                        <label>Risk $</label>
+                        <span id="riskDollar">-</span>
+                    </div>
+                    <div class="value-pair">
+                        <label>Pos</label>
+                        <span id="positionValue">-</span>
+                    </div>
+                    <div class="value-pair">
+                        <label>Account</label>
+                        <span id="accountPercent">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tiered-summary-row">
+                <div class="value-pair tiered-label-pair">
+                    <label>Tiered Stops</label>
+                    <span class="tiered-sublabel">Risk</span>
+                </div>
+                <div class="value-pair">
+                    <label id="tieredStop1Price">-</label>
+                    <span id="tieredStop1Meta">-</span>
+                </div>
+                <div class="value-pair">
+                    <label id="tieredStop2Price">-</label>
+                    <span id="tieredStop2Meta">-</span>
+                </div>
+                <div class="value-pair">
+                    <label id="tieredStop3Price">-</label>
+                    <span id="tieredStop3Meta">-</span>
+                </div>
+                <div class="value-pair tiered-total-pair">
+                    <label id="tieredTotalPct">-</label>
+                    <span id="tieredTotalDollar">-</span>
+                </div>
+            </div>
+            
+            <div class="results" id="results">
+            <table class="risk-grid">
+                <thead>
+                    <tr>
+                        <th>Preset:</th>
+                        <th class="clickable-risk" data-index="0" title="Click to set shares">0.05%</th>
+                        <th class="clickable-risk" data-index="1" title="Click to set shares">0.10%</th>
+                        <th class="clickable-risk" data-index="2" title="Click to set shares">0.25%</th>
+                        <th class="clickable-risk" data-index="3" title="Click to set shares">0.5%</th>
+                        <th class="clickable-risk" data-index="4" title="Click to set shares">0.75%</th>
+                        <th class="clickable-risk" data-index="5" title="Click to set shares">1%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bold-row">
+                        <td class="row-label">Shares</td>
+                        <td><span id="shares-0">-</span></td>
+                        <td><span id="shares-1">-</span></td>
+                        <td><span id="shares-2">-</span></td>
+                        <td><span id="shares-3">-</span></td>
+                        <td><span id="shares-4">-</span></td>
+                        <td><span id="shares-5">-</span></td>
+                    </tr>
+                    <tr class="bold-row">
+                        <td class="row-label">Position</td>
+                        <td><span id="value-0">-</span></td>
+                        <td><span id="value-1">-</span></td>
+                        <td><span id="value-2">-</span></td>
+                        <td><span id="value-3">-</span></td>
+                        <td><span id="value-4">-</span></td>
+                        <td><span id="value-5">-</span></td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Risk $</td>
+                        <td><span id="riskval-0">-</span></td>
+                        <td><span id="riskval-1">-</span></td>
+                        <td><span id="riskval-2">-</span></td>
+                        <td><span id="riskval-3">-</span></td>
+                        <td><span id="riskval-4">-</span></td>
+                        <td><span id="riskval-5">-</span></td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Account %</td>
+                        <td><span id="acctpct-0">-</span></td>
+                        <td><span id="acctpct-1">-</span></td>
+                        <td><span id="acctpct-2">-</span></td>
+                        <td><span id="acctpct-3">-</span></td>
+                        <td><span id="acctpct-4">-</span></td>
+                        <td><span id="acctpct-5">-</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load saved values on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const fields = ['accountSize', 'currentPrice', 'stopPrice', 'shares'];
+            fields.forEach(field => {
+                const saved = localStorage.getItem('calc_' + field);
+                if (saved && document.getElementById(field)) {
+                    document.getElementById(field).value = saved;
+                }
+            });
+            
+            // Auto-calculate if all fields are filled
+            autoCalculate();
+        });
+        
+        // Save values to localStorage on change and auto-calculate
+        document.addEventListener('input', function(e) {
+            if (e.target.tagName === 'INPUT') {
+                localStorage.setItem('calc_' + e.target.id, e.target.value);
+                
+                // Auto-calculate for first calculator if all fields filled
+                if (['accountSize', 'currentPrice', 'stopPrice', 'shares'].includes(e.target.id)) {
+                    autoCalculate();
+                }
+            }
+        });
+        
+        // Sync sliders with inputs
+        function syncSlider(inputId, sliderId) {
+            const input = document.getElementById(inputId);
+            const slider = document.getElementById(sliderId);
+            
+            if (!slider) return;
+            
+            // Update slider when input changes
+            input.addEventListener('input', function() {
+                slider.value = this.value;
+            });
+            
+            // Update input when slider changes
+            slider.addEventListener('input', function() {
+                input.value = this.value;
+                localStorage.setItem('calc_' + inputId, this.value);
+                autoCalculate();
+            });
+            
+            // Initialize
+            slider.value = input.value;
+        }
+        
+        syncSlider('accountSize', 'accountSizeSlider');
+        syncSlider('currentPrice', 'currentPriceSlider');
+        syncSlider('stopPrice', 'stopPriceSlider');
+        syncSlider('shares', 'sharesSlider');
+        
+        function autoCalculate() {
+            const accountSize = parseFloat(document.getElementById('accountSize').value);
+            const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+            const stopPrice = parseFloat(document.getElementById('stopPrice').value);
+            
+            if (accountSize && currentPrice && stopPrice) {
+                calculate();
+            }
+        }
+        
+        function calculate() {
+            const accountSize = parseFloat(document.getElementById('accountSize').value);
+            const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+            const stopPrice = parseFloat(document.getElementById('stopPrice').value);
+            const shares = parseFloat(document.getElementById('shares').value);
+            
+            if (!accountSize || !currentPrice || !stopPrice) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const riskPerShare = currentPrice - stopPrice;
+            const stopPercent = (riskPerShare / currentPrice) * 100;
+            const isNegative = riskPerShare < 0;
+            
+            // If shares provided, calculate exact risk and account percentages
+            if (shares) {
+                const positionValue = shares * currentPrice;
+                const totalRisk = shares * riskPerShare;
+                const riskPercent = (totalRisk / accountSize) * 100;
+                const accountPercent = (positionValue / accountSize) * 100;
+                
+                document.getElementById('stopPercent').textContent = stopPercent.toFixed(2) + '%';
+                document.getElementById('positionValue').textContent = '$' + positionValue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                document.getElementById('riskPercent').textContent = riskPercent.toFixed(2) + '%';
+                document.getElementById('riskDollar').textContent = '$' + totalRisk.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                document.getElementById('accountPercent').textContent = accountPercent.toFixed(2) + '%';
+
+                // Tiered stop calculations (33%, 66%, 100% of stop distance)
+                const baseShares = Math.floor(shares / 3);
+                const remainderShares = shares % 3;
+                const s1Shares = baseShares;
+                const s2Shares = baseShares + (remainderShares === 2 ? 1 : 0);
+                const s3Shares = baseShares + (remainderShares >= 1 ? 1 : 0);
+
+                const s1RiskPerShare = riskPerShare * (1 / 3);
+                const s2RiskPerShare = riskPerShare * (2 / 3);
+                const s3RiskPerShare = riskPerShare;
+
+                const stop1Price = currentPrice - s1RiskPerShare;
+                const stop2Price = currentPrice - s2RiskPerShare;
+                const stop3Price = stopPrice;
+
+                const s1Dollar = s1Shares * s1RiskPerShare;
+                const s2Dollar = s2Shares * s2RiskPerShare;
+                const s3Dollar = s3Shares * s3RiskPerShare;
+                const totalTieredDollar = s1Dollar + s2Dollar + s3Dollar;
+                const totalTieredPct = (totalTieredDollar / accountSize) * 100;
+
+                const stop1Pct = stopPercent * (1 / 3);
+                const stop2Pct = stopPercent * (2 / 3);
+                const stop3Pct = stopPercent;
+
+                document.getElementById('tieredStop1Price').textContent = s1Shares.toLocaleString() + ' / $' + stop1Price.toFixed(2);
+                document.getElementById('tieredStop1Meta').textContent = stop1Pct.toFixed(2) + '% / $' + s1Dollar.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                document.getElementById('tieredStop2Price').textContent = s2Shares.toLocaleString() + ' / $' + stop2Price.toFixed(2);
+                document.getElementById('tieredStop2Meta').textContent = stop2Pct.toFixed(2) + '% / $' + s2Dollar.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                document.getElementById('tieredStop3Price').textContent = s3Shares.toLocaleString() + ' / $' + stop3Price.toFixed(2);
+                document.getElementById('tieredStop3Meta').textContent = stop3Pct.toFixed(2) + '% / $' + s3Dollar.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                document.getElementById('tieredTotalPct').textContent = totalTieredPct.toFixed(2) + '%';
+                document.getElementById('tieredTotalDollar').textContent = '$' + totalTieredDollar.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                
+                // Update background color based on risk percentage
+                const absRiskPercent = Math.abs(riskPercent);
+                const staticValueDiv = document.querySelector('.static-value');
+                
+                // Remove all risk classes and empty class
+                staticValueDiv.classList.remove('risk-0-05', 'risk-0-10', 'risk-0-25', 'risk-0-50', 'risk-0-75', 'risk-1-00',
+                    'risk-negative-0-05', 'risk-negative-0-10', 'risk-negative-0-25', 'risk-negative-0-50', 'risk-negative-0-75', 'risk-negative-1-00', 'empty');
+                
+                // Add appropriate risk class based on percentage
+                const prefix = isNegative ? 'risk-negative-' : 'risk-';
+                if (absRiskPercent <= 0.05) {
+                    staticValueDiv.classList.add(prefix + '0-05');
+                } else if (absRiskPercent <= 0.10) {
+                    staticValueDiv.classList.add(prefix + '0-10');
+                } else if (absRiskPercent <= 0.25) {
+                    staticValueDiv.classList.add(prefix + '0-25');
+                } else if (absRiskPercent <= 0.50) {
+                    staticValueDiv.classList.add(prefix + '0-50');
+                } else if (absRiskPercent <= 0.75) {
+                    staticValueDiv.classList.add(prefix + '0-75');
+                } else {
+                    staticValueDiv.classList.add(prefix + '1-00');
+                }
+            } else {
+                document.getElementById('stopPercent').textContent = stopPercent.toFixed(2) + '%';
+                document.getElementById('positionValue').textContent = '-';
+                document.getElementById('riskPercent').textContent = '-';
+                document.getElementById('riskDollar').textContent = '-';
+                document.getElementById('accountPercent').textContent = '-';
+
+                const s1RiskPerShare = riskPerShare * (1 / 3);
+                const s2RiskPerShare = riskPerShare * (2 / 3);
+                const stop1Price = currentPrice - s1RiskPerShare;
+                const stop2Price = currentPrice - s2RiskPerShare;
+                const stop3Price = stopPrice;
+
+                const stop1Pct = stopPercent * (1 / 3);
+                const stop2Pct = stopPercent * (2 / 3);
+                const stop3Pct = stopPercent;
+
+                document.getElementById('tieredStop1Price').textContent = '- / $' + stop1Price.toFixed(2);
+                document.getElementById('tieredStop1Meta').textContent = stop1Pct.toFixed(2) + '% / -';
+                document.getElementById('tieredStop2Price').textContent = '- / $' + stop2Price.toFixed(2);
+                document.getElementById('tieredStop2Meta').textContent = stop2Pct.toFixed(2) + '% / -';
+                document.getElementById('tieredStop3Price').textContent = '- / $' + stop3Price.toFixed(2);
+                document.getElementById('tieredStop3Meta').textContent = stop3Pct.toFixed(2) + '% / -';
+                document.getElementById('tieredTotalPct').textContent = '-';
+                document.getElementById('tieredTotalDollar').textContent = '-';
+                
+                // Apply neutral gray background when no shares
+                const staticValueDiv = document.querySelector('.static-value');
+                staticValueDiv.classList.remove('risk-0-05', 'risk-0-10', 'risk-0-25', 'risk-0-50', 'risk-0-75', 'risk-1-00',
+                    'risk-negative-0-05', 'risk-negative-0-10', 'risk-negative-0-25', 'risk-negative-0-50', 'risk-negative-0-75', 'risk-negative-1-00');
+                staticValueDiv.classList.add('empty');
+            }
+            
+            // Fixed risk levels: 0.05%, 0.10%, 0.25%, 0.5%, 0.75%, 1%
+            const riskLevels = [0.05, 0.10, 0.25, 0.5, 0.75, 1.0];
+            
+            // Calculate values for each risk level
+            riskLevels.forEach((risk, index) => {
+                const maxDollarRisk = accountSize * (risk / 100);
+                const sharesToBuy = Math.floor(maxDollarRisk / Math.abs(riskPerShare));
+                const positionValue = sharesToBuy * currentPrice;
+                const totalRisk = sharesToBuy * riskPerShare;
+                const pctOfAccount = (positionValue / accountSize) * 100;
+                
+                document.getElementById(`shares-${index}`).textContent = sharesToBuy.toLocaleString();
+                document.getElementById(`riskval-${index}`).textContent = '$' + totalRisk.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                document.getElementById(`value-${index}`).textContent = '$' + positionValue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                document.getElementById(`acctpct-${index}`).textContent = pctOfAccount.toFixed(2) + '%';
+            });
+            
+            // Update column styling based on positive/negative
+            const tbody = document.querySelector('.risk-grid tbody');
+            tbody.className = isNegative ? 'negative' : 'positive';
+            const riskTable = document.querySelector('.risk-grid');
+            if (riskTable) riskTable.classList.toggle('negative', isNegative);
+            
+            updateActiveRiskHeader();
+            document.getElementById('results').classList.add('show');
+        }
+        
+        // Auto-calculate on Enter key
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    calculate();
+                }
+            });
+        });
+        
+        // Add mouse wheel support for number inputs
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('wheel', function(e) {
+                if (document.activeElement === this) {
+                    e.preventDefault();
+                    const step = parseFloat(this.step) || 1;
+                    const delta = e.deltaY > 0 ? -step : step;
+                    const newValue = parseFloat(this.value || 0) + delta;
+                    
+                    // Round to appropriate decimal places for price inputs
+                    if (this.id === 'currentPrice' || this.id === 'stopPrice') {
+                        this.value = newValue.toFixed(2);
+                    } else {
+                        this.value = newValue;
+                    }
+                    
+                    // Trigger input event to update localStorage and auto-calculate
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+            
+            // Also round on blur for price inputs
+            if (input.id === 'currentPrice' || input.id === 'stopPrice') {
+                input.addEventListener('blur', function() {
+                    if (this.value) {
+                        this.value = parseFloat(this.value).toFixed(2);
+                    }
+                });
+            }
+        });
+        
+        // Shift+Up/Down arrows for shares input to jump by 10
+        document.getElementById('shares').addEventListener('keydown', function(e) {
+            if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault();
+                const currentValue = parseFloat(this.value || 0);
+                const delta = e.key === 'ArrowUp' ? 10 : -10;
+                const newValue = Math.max(0, currentValue + delta);
+                this.value = newValue;
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
+        // Shift+Up/Down arrows for entry and stop price inputs to jump by 1.00
+        ['currentPrice', 'stopPrice'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('keydown', function(e) {
+                if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                    e.preventDefault();
+                    const currentValue = parseFloat(this.value || 0);
+                    const delta = e.key === 'ArrowUp' ? 1.0 : -1.0;
+                    const newValue = Math.max(0, currentValue + delta);
+                    this.value = newValue.toFixed(2);
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+
+        function updateActiveRiskHeader() {
+            const currentShares = parseFloat(document.getElementById('shares').value);
+            const table = document.querySelector('.risk-grid');
+            if (!table) return;
+
+            table.querySelectorAll('th, td').forEach(cell => cell.classList.remove('active', 'in-range'));
+
+            if (isNaN(currentShares) || currentShares <= 0) return;
+
+            const presetShares = [];
+            for (let idx = 0; idx < 6; idx++) {
+                const span = document.getElementById(`shares-${idx}`);
+                presetShares[idx] = span ? parseInt(span.textContent.replace(/,/g, ''), 10) : NaN;
+            }
+
+            let exactIndex = -1;
+            for (let i = 0; i < presetShares.length; i++) {
+                if (!isNaN(presetShares[i]) && currentShares === presetShares[i]) {
+                    exactIndex = i;
+                    break;
+                }
+            }
+
+            function setColumnClass(colIdx, className) {
+                const childNum = colIdx + 2;
+                table.querySelectorAll(`th:nth-child(${childNum}), td:nth-child(${childNum})`).forEach(el => {
+                    el.classList.add(className);
+                });
+            }
+
+            if (exactIndex !== -1) {
+                setColumnClass(exactIndex, 'active');
+                return;
+            }
+
+            for (let i = 0; i < presetShares.length - 1; i++) {
+                const low = presetShares[i];
+                const high = presetShares[i + 1];
+                if (!isNaN(low) && !isNaN(high) && currentShares > low && currentShares < high) {
+                    setColumnClass(i, 'in-range');
+                    setColumnClass(i + 1, 'in-range');
+                    break;
+                }
+            }
+        }
+
+        // Click any cell in a risk column to fill shares input
+        const riskGrid = document.querySelector('.risk-grid');
+        if (riskGrid) {
+            riskGrid.addEventListener('click', function(e) {
+                const cell = e.target.closest('th, td');
+                if (!cell) return;
+                const colIndex = cell.cellIndex;
+                if (colIndex < 1 || colIndex > 6) return;
+                const index = colIndex - 1;
+                const sharesSpan = document.getElementById(`shares-${index}`);
+                if (!sharesSpan) return;
+                const rawText = sharesSpan.textContent.replace(/,/g, '').trim();
+                const num = parseInt(rawText, 10);
+                if (!isNaN(num) && num >= 0) {
+                    const sharesInput = document.getElementById('shares');
+                    sharesInput.value = num;
+                    sharesInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        }
+    </script>
+</body>
+</html>
